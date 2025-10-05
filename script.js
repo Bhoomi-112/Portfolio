@@ -13,63 +13,155 @@ const navLinks = document.querySelectorAll('.nav-link');
 
 navToggle.addEventListener('click', () => {
     navMenu.classList.toggle('active');
+    navToggle.classList.toggle('active');
     
-    // Animate hamburger bars
-    const bars = navToggle.querySelectorAll('.bar');
-    bars.forEach((bar, index) => {
-        bar.style.transform = navMenu.classList.contains('active') 
-            ? `rotate(${index === 1 ? 0 : index === 0 ? 45 : -45}deg) translate(${index === 1 ? 0 : index === 0 ? 5 : -5}px, ${index === 1 ? 0 : index === 0 ? 5 : -5}px)`
-            : 'none';
-    });
+    // Prevent body scroll when menu is open
+    if (navMenu.classList.contains('active')) {
+        document.body.style.overflow = 'hidden';
+    } else {
+        document.body.style.overflow = '';
+    }
 });
 
 // Close mobile menu when clicking on a link
 navLinks.forEach(link => {
     link.addEventListener('click', () => {
         navMenu.classList.remove('active');
-        const bars = navToggle.querySelectorAll('.bar');
-        bars.forEach(bar => {
-            bar.style.transform = 'none';
-        });
+        navToggle.classList.remove('active');
+        document.body.style.overflow = '';
     });
 });
 
-// Smooth scrolling for navigation links
+// Close menu when clicking outside
+document.addEventListener('click', (e) => {
+    if (!navToggle.contains(e.target) && !navMenu.contains(e.target)) {
+        navMenu.classList.remove('active');
+        navToggle.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+});
+
+// Close menu on escape key
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && navMenu.classList.contains('active')) {
+        navMenu.classList.remove('active');
+        navToggle.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+});
+
+// Enhanced smooth scrolling for navigation links
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', function (e) {
         e.preventDefault();
-        const target = document.querySelector(this.getAttribute('href'));
+        const targetId = this.getAttribute('href').substring(1);
+        const target = document.getElementById(targetId);
+        
         if (target) {
-            target.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start'
-            });
+            // Close mobile menu if open
+            navMenu.classList.remove('active');
+            navToggle.classList.remove('active');
+            document.body.style.overflow = '';
+            
+            // Calculate offset for fixed navbar
+            const navbarHeight = document.querySelector('.navbar').offsetHeight;
+            const targetPosition = target.offsetTop - navbarHeight - 20;
+            
+            // Smooth scroll with fallback for older browsers
+            if ('scrollBehavior' in document.documentElement.style) {
+                window.scrollTo({
+                    top: targetPosition,
+                    behavior: 'smooth'
+                });
+            } else {
+                // Fallback for browsers that don't support smooth scroll
+                smoothScrollPolyfill(targetPosition);
+            }
         }
     });
 });
 
-// Active navigation link highlighting
+// Smooth scroll polyfill for older browsers
+function smoothScrollPolyfill(targetPosition) {
+    const startPosition = window.pageYOffset;
+    const distance = targetPosition - startPosition;
+    const duration = 800;
+    let start = null;
+    
+    function animation(currentTime) {
+        if (start === null) start = currentTime;
+        const timeElapsed = currentTime - start;
+        const run = ease(timeElapsed, startPosition, distance, duration);
+        window.scrollTo(0, run);
+        if (timeElapsed < duration) requestAnimationFrame(animation);
+    }
+    
+    function ease(t, b, c, d) {
+        t /= d / 2;
+        if (t < 1) return c / 2 * t * t + b;
+        t--;
+        return -c / 2 * (t * (t - 2) - 1) + b;
+    }
+    
+    requestAnimationFrame(animation);
+}
+
+// Enhanced active navigation link highlighting
 const sections = document.querySelectorAll('section[id]');
 const navbarLinks = document.querySelectorAll('.nav-link');
 
 function highlightActiveSection() {
     const scrollY = window.pageYOffset;
+    const windowHeight = window.innerHeight;
+    const navbarHeight = document.querySelector('.navbar').offsetHeight;
+    
+    // Remove all active classes first
+    navbarLinks.forEach(link => link.classList.remove('active'));
+    
+    // Find the section that's most visible in the viewport
+    let activeSection = null;
+    let maxVisibleHeight = 0;
     
     sections.forEach((section) => {
-        const sectionHeight = section.offsetHeight;
-        const sectionTop = section.offsetTop - 100;
+        const sectionTop = section.offsetTop - navbarHeight;
+        const sectionBottom = sectionTop + section.offsetHeight;
         const sectionId = section.getAttribute('id');
         
-        if (scrollY > sectionTop && scrollY <= sectionTop + sectionHeight) {
-            navbarLinks.forEach(link => {
-                link.classList.remove('active');
-                if (link.getAttribute('href') === `#${sectionId}`) {
-                    link.classList.add('active');
-                }
-            });
+        // Calculate how much of the section is visible
+        const visibleTop = Math.max(scrollY, sectionTop);
+        const visibleBottom = Math.min(scrollY + windowHeight, sectionBottom);
+        const visibleHeight = Math.max(0, visibleBottom - visibleTop);
+        
+        // If this section is more visible than others, make it active
+        if (visibleHeight > maxVisibleHeight && visibleHeight > 100) {
+            maxVisibleHeight = visibleHeight;
+            activeSection = sectionId;
         }
     });
+    
+    // Highlight the active section
+    if (activeSection) {
+        const activeLink = document.querySelector(`.nav-link[href="#${activeSection}"]`);
+        if (activeLink) {
+            activeLink.classList.add('active');
+        }
+    }
 }
+
+// Throttled scroll event for better performance
+let ticking = false;
+function handleScroll() {
+    if (!ticking) {
+        requestAnimationFrame(() => {
+            highlightActiveSection();
+            ticking = false;
+        });
+        ticking = true;
+    }
+}
+
+// Add scroll event listener
+window.addEventListener('scroll', handleScroll);
 
 // Navbar background on scroll
 function updateNavbarOnScroll() {
@@ -404,12 +496,56 @@ document.addEventListener('DOMContentLoaded', () => {
     // Resize event listeners
     window.addEventListener('resize', () => {
         // Handle responsive updates
+        handleResponsiveChanges();
     });
 });
+
+// Mobile-specific optimizations
+function handleResponsiveChanges() {
+    const isMobile = window.innerWidth <= 768;
+    const particles = document.querySelector('.particles');
+    const shapes = document.querySelector('.hero-shapes');
+    
+    // Reduce animations on mobile for better performance
+    if (isMobile) {
+        if (particles) particles.style.opacity = '0.3';
+        if (shapes) shapes.style.opacity = '0.3';
+    } else {
+        if (particles) particles.style.opacity = '1';
+        if (shapes) shapes.style.opacity = '1';
+    }
+}
+
+// Touch event optimizations
+if ('ontouchstart' in window) {
+    // Optimize for touch devices
+    document.addEventListener('touchstart', function() {}, { passive: true });
+    
+    // Prevent zoom on double tap for better UX
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', function (event) {
+        const now = (new Date()).getTime();
+        if (now - lastTouchEnd <= 300) {
+            event.preventDefault();
+        }
+        lastTouchEnd = now;
+    }, false);
+}
+
+// Viewport height fix for mobile browsers
+function setVH() {
+    let vh = window.innerHeight * 0.01;
+    document.documentElement.style.setProperty('--vh', `${vh}px`);
+}
+
+setVH();
+window.addEventListener('resize', setVH);
+window.addEventListener('orientationchange', setVH);
 
 // Page load animation
 window.addEventListener('load', () => {
     document.body.classList.add('loaded');
+    handleResponsiveChanges();
     
     // Fade in hero content
     const heroContent = document.querySelector('.hero-content');
