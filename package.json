@@ -1,0 +1,27 @@
+{
+  "name": "bhoomi-awhad-portfolio",
+  "version": "1.0.0",
+  "description": "Modern portfolio website for Bhoomi Awhad - AI/ML Developer",
+  "main": "index.html",
+  "scripts": {
+    "start": "python -m http.server 8000",
+    "dev": "python -m http.server 8000",
+    "build": "echo 'No build process needed for static site'",
+    "deploy": "echo 'Ready for deployment to any static hosting service'"
+  },
+  "keywords": [
+    "portfolio",
+    "ai",
+    "machine-learning",
+    "web-development",
+    "responsive",
+    "modern-design"
+  ],
+  "author": "Bhoomi Awhad <bhoomiawhad02@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Bhoomi-112/portfolio"
+  },
+  "homepage": "https://bhoomi-112.github.io/portfolio"
+}
